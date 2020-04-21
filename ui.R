@@ -60,6 +60,36 @@ ui <- tagList(
                                                    max = 100,
                                                    value = 50),
                                        br(),
+                                       
+                                       menuItem(
+                                           "MAJCOM Summary Inputs",
+                                           tabName = "MAJCOMsummary",
+                                           icon = icon("sliders-h"),
+                                           div(id = "single", style="display: none;", numericInput("tckt", "Ticket Number : ", 12345,  width = 300)),
+                                           radioButtons("SummaryStatistic",
+                                                        "Cases or Hospitalizations: ",
+                                                        c("Cases"="Cases",
+                                                          "Hospitalizations"="Hospitalizations")),
+                                           selectInput(
+                                               "MAJCOMInput",
+                                               "MAJCOM:", 
+                                               list(`MAJCOM` = MAJCOMList ), 
+                                               selectize = FALSE),
+                                           radioButtons("SummaryModelType",
+                                                        "Summary Plot Model: ",
+                                                        c("IHME"="IHME",
+                                                          "CHIME"="CHIME"),
+                                                        selected = "CHIME"),
+                                           radioButtons("SummaryForecast",
+                                                        "Choose Days Forecasted: ",
+                                                        c('Today'='Today',
+                                                          "7 Days"="Seven",
+                                                          "14 Days"="Fourteen",
+                                                          "21 Days"="Twenty-One",
+                                                          "30 Days"="Thirty"))
+                                           
+                                       ),
+                                       br(),
                                        menuItem(
                                            "Current Local Health Inputs",
                                            tabName = "localHealthInput",
@@ -80,58 +110,31 @@ ui <- tagList(
                                                           "Fatalities"="Fatalities")),
                                            sliderInput("proj_days",
                                                        "Projection days:",
-                                                       min = 14,
-                                                       max = 120,
-                                                       value = 30),
+                                                       min = 7,
+                                                       max = 30,
+                                                       value = 14),
                                            checkboxGroupInput("SocialDistanceValue", "Local Social Distancing Actions: ",
                                                               c("Close Schools" = "CS",
                                                                 "Businesses Telework" = "CB",
                                                                 "Social Distance" = "SD"))
                                        ),
                                        br(),
-                                       menuItem(
-                                           "National Health Projection Inputs",
-                                           tabName = "natHealthProj",
-                                           icon = icon("sliders-h"),
-                                           div(id = "single", style="display: none;", numericInput("tckt", "Ticket Number : ", 12345,  width = 300)),
-                                           sliderInput("proj_days_national",
-                                                       "Projection days:",
-                                                       min = 14,
-                                                       max = 120,
-                                                       value = 30),
-                                           checkboxGroupInput("SocialDistanceValueNational", "National Social Distancing Actions: ",
-                                                              c("Close Schools" = "CSN",
-                                                                "Businesses Telework" = "CBN",
-                                                                "Social Distance" = "SDN"))
-                                       ),
-                                       br(),
-                                       menuItem(
-                                           "MAJCOM Summary Inputs",
-                                           tabName = "MAJCOMsummary",
-                                           icon = icon("sliders-h"),
-                                           div(id = "single", style="display: none;", numericInput("tckt", "Ticket Number : ", 12345,  width = 300)),
-                                           radioButtons("SummaryStatistic",
-                                                        "Cases or Hospitalizations: ",
-                                                        c("Cases"="Cases",
-                                                          "Hospitalizations"="Hospitalizations")),
-                                           selectInput(
-                                               "MAJCOMInput",
-                                               "MAJCOM:", 
-                                               list(`MAJCOM` = MAJCOMList ), 
-                                               selectize = FALSE),
-                                           radioButtons("SummaryModelType",
-                                                        "Summary Plot Model: ",
-                                                        c("IHME"="IHME",
-                                                          "CHIME"="CHIME")),
-                                           radioButtons("SummaryForecast",
-                                                        "Choose Days Forecasted: ",
-                                                        c('Today'='Today',
-                                                          "7 Days"="Seven",
-                                                          "14 Days"="Fourteen",
-                                                          "30 Days"="Thirty",
-                                                          "60 Days"="Sixty"))
+                                       # menuItem(
+                                       #     "National Health Projection Inputs",
+                                       #     tabName = "natHealthProj",
+                                       #     icon = icon("sliders-h"),
+                                       #     div(id = "single", style="display: none;", numericInput("tckt", "Ticket Number : ", 12345,  width = 300)),
+                                       #     sliderInput("proj_days_national",
+                                       #                 "Projection days:",
+                                       #                 min = 7,
+                                       #                 max = 30,
+                                       #                 value = 14),
+                                       #     checkboxGroupInput("SocialDistanceValueNational", "National Social Distancing Actions: ",
+                                       #                        c("Close Schools" = "CSN",
+                                       #                          "Businesses Telework" = "CBN",
+                                       #                          "Social Distance" = "SDN"))
+                                       # ),
 
-                                       ),
                                        br(),
                                        
                                        div(style="text-align:center", tags$hr(style="border-color: #444;"), "Generate & Download Report:"),
@@ -183,17 +186,37 @@ ui <- tagList(
                     '))),
                       tags$script(HTML('
                                    $(document).ready(function() {
-                                   $("header").find("nav").append(\'<span class="myClass"> COVID-19 Health Assessment Dashboard Beta v0.5</span>\');
+                                   $("header").find("nav").append(\'<span class="myClass"> COVID-19 Health Assessment Dashboard Beta v0.6</span>\');
                                    })
                                    ')),
                       tabsetPanel(id = "tabs",
                                   
+                                  ####### BEGIN SUMMARY TAB #########
+                                  # Mission Risk ------------------------------------------------------------
+                                  tabPanel(
+                                      title = "MAJCOM Summary",
+                                      fluidRow(
+                                          box(plotlyOutput("SummaryTabChoro", height = 600, width = 'auto')),
+                                          box(plotOutput("HotSpot", height = 600))),
+                                      box(title = "Base Summary Projections",
+                                          solidHeader=T, 
+                                          align = "left", 
+                                          column(width = 12, 
+                                                 DT::dataTableOutput("ForecastDataTable"), 
+                                                 style = "height:720px;overflow-y: scroll"), 
+                                          height = 900, 
+                                          width =13,
+                                          downloadButton('downloadData', 'Download Full Dataset'),
+                                          downloadButton('HotSpotData', 'Download Hotspot Dataset'))
+                                      
+                                  ),
+                                  ####### END Mission Risk #######
+                                  
                                   # Summary Tab -------------------------------------------------------------
                                   tabPanel(
                                       title = "National Summary",
-                                      
-                                      box(title = "National Impact Map",solidHeader = T, align = "center", htmlOutput("SummaryPlot"),width = 13),
-                                      
+
+                                      box(title = "National Impact Map",solidHeader = T, align = "center", htmlOutput("SummaryPlot"),height=700,width=1200),
                                       box(title = "National Statistics", solidHeader=T, align = "left", column(width = 12, DT::dataTableOutput("NationalDataTable1"), style = "height:240px;overflow-y: scroll;overflow-x:scroll"),width = 13)
                                       
                                   ),
@@ -243,45 +266,42 @@ ui <- tagList(
                                           box(plotlyOutput("IHME_State_Hosp",height = 400)),
                                           box(plotlyOutput("SEIARProjection"),height = 400)),
                                           box(plotlyOutput("OverlayPlots"), width =  900)
-                                  ),
+                                  )
                                   ####### END PROJECTION TAB #######
                                   
                                   ####### BEGIN National PROJECTION TAB #########
                                   # National Health Projections ------------------------------------------------
-                                  tabPanel(
-                                      title = "National Health Projections",
-                                      # fluidRow(
-                                      #     valueBoxOutput("TotalPopulation_National"),
-                                      #     valueBoxOutput("CHIMEPeakDate_National"),
-                                      #     valueBoxOutput("IHMEPeakDate_National")
-                                      #),
-                                      fluidRow(
-                                          box(plotlyOutput("IHMENationaProj",height = 400)),
-                                          box(plotlyOutput("CHIMENationalProj"),height = 400)),
-                                          box(plotlyOutput("NationalPlotOverlay"), width =  900)
-                                  ),
+                                  # tabPanel(
+                                  #     title = "National Health Projections",
+                                  #     # fluidRow(
+                                  #     #     valueBoxOutput("TotalPopulation_National"),
+                                  #     #     valueBoxOutput("CHIMEPeakDate_National"),
+                                  #     #     valueBoxOutput("IHMEPeakDate_National")
+                                  #     #),
+                                  #     fluidRow(
+                                  #         box(plotlyOutput("IHMENationaProj",height = 400)),
+                                  #         box(plotlyOutput("CHIMENationalProj"),height = 400)),
+                                  #         box(plotlyOutput("NationalPlotOverlay"), width =  900)
+                                  # )
                                   ####### END PROJECTION TAB #######
-                                  
-                                  ####### BEGIN SUMMARY TAB #########
-                                  # Mission Risk ------------------------------------------------------------
-                                  tabPanel(
-                                      title = "MAJCOM Summary",
-                                      fluidRow(
-                                          box(plotlyOutput("SummaryTabChoro", height = 600, width = 'auto',),height = 600, width = 900)),
-                                      box(title = "Summary Projections",
-                                          solidHeader=T, 
-                                          align = "left", 
-                                          column(width = 12, 
-                                                 DT::dataTableOutput("ForecastDataTable"), 
-                                                 style = "height:720px;overflow-y: scroll"), 
-                                          height = 900, 
-                                          width =13,
-                                          downloadButton('downloadData', 'Download data'))
-                                    
-                                      )
-                                      )
 
-                                  ####### END Mission Risk #######
+                                  ####### BEGIN Aircrew TAB #########
+                                  # Air Force Community Projections ------------------------------------------------------------
+                                  # tabPanel(
+                                  #     title = "Air Force Community Projections",
+                                  #     box(title = "Projected Community Epidemic",
+                                  #         solidHeader=T, 
+                                  #         align = "left", 
+                                  #         column(width = 12, 
+                                  #                plotlyOutput("ProjectedEpidemicTable"), 
+                                  #                style = "height:720px;overflow-y: scroll"), 
+                                  #         height = 900, 
+                                  #         width =13
+                                  # ))
+
+                                      ) #close dash body
+
+                                  
                                   
                                   
                       )

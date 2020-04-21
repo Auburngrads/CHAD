@@ -1,3 +1,4 @@
+
 ---
 title: |
   <center> CHAD Output Summary </center>
@@ -32,11 +33,12 @@ Counties = GetCounties(params$base, params$radius)
 Hospitals = GetHospitals(params$base, params$radius)
 CountyDT = GetLocalDataTable(Counties)
 CovidCounties = subset(CovidConfirmedCases, CountyFIPS %in% Counties$FIPS)
+CovidCountiesDeath<-subset(CovidDeaths, CountyFIPS %in% Counties$FIPS)
 CountyCovid = CalculateCovid(Counties)
 CountyDeaths = CalculateDeaths(Counties)
 TotPop = CalculateCounties(Counties)
 CovidCaseChng = sum(rev(CovidCounties)[,1] - rev(CovidCounties)[,2])
-CovidDeathChng <- sum(rev(CovidCounties)[,1] - rev(CovidCounties)[,2])
+CovidDeathChng <- sum(rev(CovidCountiesDeath)[,1] - rev(CovidCountiesDeath)[,2])
 HospUltz = HospitalIncreases(Counties)
 #HospUltz2 = HospitalUtlzChng(Counties)
 
@@ -149,7 +151,7 @@ Estimated Hospital Utilization:
 
 <div class = "col-md-7">
 
-```{r fig.height = 4, fig.width = 5, echo=FALSE}
+```{r fig.height = 4, fig.width = 5, echo=FALSE, warning = FALSE}
 CountyChoro = PlotLocalChoro(Counties, params$base, "County")
 CountyChoro
 ```
@@ -174,7 +176,7 @@ DailyChart <- CovidCasesPerDayChart(Counties)
         
         plotDaily <- ggplot(DailyChart) + 
             geom_line(aes(x=ForecastDate, y=value, colour = variable), size = 0.5) +
-            scale_colour_manual(values=c("Blue", "Orange", "Red")) +
+            scale_colour_manual(values=c("Blue", "Red")) +
             xlab('Date') +
             ylab('Number of People') +
             theme_bw() + 
@@ -210,7 +212,7 @@ CumulChart <- CovidCasesCumChart(Counties)
         #Plot for local area cumulative cases
         plotTot <- ggplot(CumulChart,height = 250) + 
             geom_line(aes(x=ForecastDate, y=value, colour = variable), size = 0.5) +
-            scale_colour_manual(values=c("Blue", "Orange", "Red"))+
+            scale_colour_manual(values=c("Blue", "Red"))+
             xlab('Date') +
             ylab('Number of People') +
             theme_bw() + 
@@ -527,6 +529,16 @@ kable(CountyDT) %>%
 ```
 
 
+### `r params$base` Restriction ORM
 
+**Cohort Demographics**
 
+Col Header 1 | Col Header 2
+------------ | ------------
+Placeholder  | Pending move to FOUO
 
+**Predicted Hospitilization Rate**
+
+Col Header 1 | Col Header 2
+------------ | ------------
+Placeholder  | Pending move to FOUO

@@ -33,7 +33,7 @@ server <- function(input, output) {
         MyCounties<-GetCounties(input$Base,input$Radius)
         valueBox(subtitle = "Total Regional Population",
                  comma(CalculateCounties(MyCounties)),
-                 icon = icon("list-ol"),
+                 #icon = icon("list-ol"),
                  color = "light-blue"
         )
         
@@ -44,7 +44,7 @@ server <- function(input, output) {
         MyCounties<-GetCounties(input$Base,input$Radius)
         valueBox(subtitle = "Local Cases",
                  comma(CalculateCovid(MyCounties)),
-                 icon = icon("list-ol"),
+                 #icon = icon("list-ol"),
                  color = "light-blue"
         )
         
@@ -67,7 +67,7 @@ server <- function(input, output) {
         MyCounties<-GetCounties(input$Base,input$Radius)
         valueBox(subtitle = "Local Fatalities",
                  comma(CalculateDeaths(MyCounties)),
-                 icon = icon("skull"),
+                 #icon = icon("skull"),
                  color = "blue"
         )
     })
@@ -88,7 +88,7 @@ server <- function(input, output) {
         MyCounties<-GetCounties(input$Base,input$Radius)
         valueBox(subtitle = "Estimated Local Hospital Bed Utilization",
                  HospitalIncreases(MyCounties),
-                 icon = icon("hospital"),
+                 #icon = icon("hospital"),
                  color = "navy")
     })
    
@@ -128,12 +128,12 @@ server <- function(input, output) {
         if (input$StatisticType == "Hospitalizations") {
             valueBox(subtitle = "CHIME Predicted Peak Hospitalizations",
                      paste(Peak),
-                     icon = icon("hospital"),
+                     #icon = icon("hospital"),
                      color = "blue") 
         } else {
                 valueBox(subtitle = "CHIME Predicted Total Fatalities",
                          paste(Peak),
-                         icon = icon("skull"),
+                         #icon = icon("skull"),
                          color = "blue")}
         
     })
@@ -155,12 +155,12 @@ server <- function(input, output) {
         if (input$StatisticType == "Hospitalizations") {
             valueBox(subtitle = "IHME Predicted Peak Hospitalizations",
                      paste(Peak),
-                     icon = icon("hospital"),
+                     #icon = icon("hospital"),
                      color = "navy")
         } else {
             valueBox(subtitle = "IHME Predicted Total Fatalities",
                      paste(Peak),
-                     icon = icon("hospital"),
+                     #icon = icon("hospital"),
                      color = "navy")
         }
         
@@ -188,7 +188,7 @@ server <- function(input, output) {
         
         plotDaily <- ggplot(DailyChart) + 
             geom_line(aes(x=ForecastDate, y=value, colour = variable), size = 0.5) +
-            scale_colour_manual(values=c("Blue", "Orange", "Red")) +
+            scale_colour_manual(values=c("Blue", "Red")) +
             xlab('Date') +
             ylab('Number of People') +
             theme_bw() + 
@@ -222,7 +222,7 @@ server <- function(input, output) {
         #Plot for local area cumulative cases
         plotTot <- ggplot(CumulChart,height = 250) + 
             geom_line(aes(x=ForecastDate, y=value, colour = variable), size = 0.5) +
-            scale_colour_manual(values=c("Blue", "Orange", "Red"))+
+            scale_colour_manual(values=c("Blue", "Red"))+
             xlab('Date') +
             ylab('Number of People') +
             theme_bw() + 
@@ -290,7 +290,87 @@ server <- function(input, output) {
     
     # Output Projections  ---------------------------------------------------------------------------------------------------------------------------------------------------------------
     
-    
+    # Output AMC Analysis
+    output$ProjectedEpidemicTable<-renderPlotly({
+        
+        baseUsed = input$Base
+        
+        # Read the json file and convert it to data.frame
+        #myList <- fromJSON("data/shinyjson.json")
+        
+        json_file <- lapply(myList, function(x) {
+            x[sapply(x, is.null)] <- NA
+            unlist(x)
+        })
+        df<-as.data.frame(json_file)
+        
+        names(df) <- gsub("\\.", " ", names(df))
+        
+        #Renaming the first empty column to date
+        df <- cbind(rownames(df), df)
+        rownames(df) <- NULL
+
+        colnames(df)[1] <- "TypeDate"
+        
+        df <- rev(cSplit(df, "TypeDate", "."))
+        
+        colnames(df)[1] <- "DataDate"
+        colnames(df)[2] <- "DataType"
+        
+        df$DataDate <- as.Date(df$DataDate)
+        
+        df <- select(df, "DataDate", "DataType", baseUsed)
+        
+        colnames(df)[3]  <- "Data"
+        
+        myTibble <- as_tibble(df)
+        
+        cummInf <- myTibble %>% filter(DataType == "Cumulative Infections")
+        currInf <- myTibble %>% filter(DataType == "Current Infections")
+        cummDeath <- myTibble %>% filter(DataType == "Cumulative Deaths")
+        
+        cummDeath <- select(cummDeath, "DataDate","Data")
+        currInf <- select(currInf, "DataDate","Data")
+        cummInf <- select(cummInf, "DataDate", "Data")
+        
+        colnames(cummDeath)[2] <- "Cumulative Deaths"
+        colnames(currInf)[2] <- "Current Infections"
+        colnames(cummInf)[2] <- "Cumulative Infections"
+        
+        df <- merge(cummDeath, currInf, by="DataDate")
+        df <- merge(df, cummInf, by="DataDate")
+        
+        Chart2DataSub <- melt(data.table(df), id=c("DataDate"))
+        
+        #Plotting the Line Graph
+        p <- ggplot(Chart2DataSub) + 
+            geom_line(aes(x=DataDate,  y=value, colour = variable), size = 0.5) +
+            scale_colour_manual(values=c("Blue", "Orange", "Red"))+
+            xlab('Date') +
+            ylab('Number of People') +
+            theme_bw() + 
+           theme(plot.title = element_text(face = "bold", size = 15, family = "sans"),
+                  axis.title = element_text(face = "bold", size = 11, family = "sans"),
+                  axis.text.x = element_text(angle = 60, hjust = 1), 
+                  axis.line = element_line(color = "black"),
+                  plot.background = element_blank(),
+                  panel.grid.major = element_blank(),
+                  panel.grid.minor = element_blank(),
+                  panel.border = element_blank(),) +
+           scale_x_date(date_breaks = "1 week") + scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+        
+        p2 <- ggplotly(p)
+        p2 <- p2 %>% layout(legend = list(orientation = "h",   # show entries horizontally
+                                          xanchor = "center",
+                                          x = 0.5,
+                                          y = -0.5
+                                          )) %>% config(displayModeBar = FALSE)
+        p2 <- p2 %>% layout(xaxis = list(showgrid = F),
+                            yaxis = list(gridcolor = "lightgray"),margin = list(t = 50), title=baseUsed) %>% config(displayModeBar = FALSE)
+        p2
+        
+    })
+
     #Create IHME plot by State projected hospitalization 
     output$IHME_State_Hosp<-renderPlotly({
 
@@ -436,39 +516,37 @@ server <- function(input, output) {
     
     output$ForecastDataTable<-DT::renderDataTable({
         if (input$MAJCOMInput == "All") {
-            
             if(input$SummaryStatistic == "Cases") {
-                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType)
-                dt<-DT::datatable(ForecastDataTableCases, rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
+                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType,input$SummaryForecast)
+                dt<-DT::datatable(ForecastDataTableCases, rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))   
                 dt
             } else {
-                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType)
+                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType,input$SummaryForecast)
                 dt<-DT::datatable(ForecastDataTable, rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
                 dt
             }
         } else if(input$MAJCOMInput=="Active Duty"){
             if(input$SummaryStatistic == "Cases") {
-                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType)
+                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType,input$SummaryForecast)
                 dt<-DT::datatable(filter(ForecastDataTableCases, !MAJCOM %in% c("AFRC","ANG")), rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
                 dt
             } else {
-                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType)
+                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType,input$SummaryForecast)
                 dt<-DT::datatable(filter(ForecastDataTable, !MAJCOM %in% c("AFRC","ANG")), rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
                 dt
             }
         }
         else {
             if(input$SummaryStatistic == "Cases") {
-                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType)
+                ForecastDataTableCases<-FilterDataTable(ForecastDataTableCases,input$SummaryModelType,input$SummaryForecast)
                 dt<-DT::datatable(filter(ForecastDataTableCases, MAJCOM == input$MAJCOMInput), rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
                 dt
             } else {
-                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType)
+                ForecastDataTable<-FilterDataTable(ForecastDataTable,input$SummaryModelType,input$SummaryForecast)
                 dt<-DT::datatable(filter(ForecastDataTable, MAJCOM == input$MAJCOMInput), rownames = FALSE, options = list(dom = 'ft',ordering = F, "pageLength"=200))
                 dt
             }
         }
-        
     })
     
     
@@ -476,13 +554,14 @@ server <- function(input, output) {
 
     
     
-    
-    
-    
-    
-    
-    
-    
+    output$HotSpotData <- downloadHandler(
+        filename = function() { 
+            paste("HotspotDataset-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+            write.csv(Top15Report, file)
+            
+        })
     
     output$downloadData <- downloadHandler(
         filename = function() { 
@@ -493,7 +572,10 @@ server <- function(input, output) {
             
         })
     
-    
+    output$HotSpot <- renderPlot({
+            
+        HotspotPlot(CovidConfirmedCases, CovidDeaths,input$MAJCOMInput)
+    })
     
     # Output Report ------------------------------------------------------------------------------------------------------------------------------------------------------------------
     
